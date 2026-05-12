@@ -22,7 +22,7 @@ router = APIRouter(prefix="/locations", tags=["locations"])
 def create(
     location: LocationRequest,
     session: Session = Depends(get_db),
-    # current_user: str = Depends(get_current_user),
+    current_user: str = Depends(get_current_user),
 ):
     db_location = Location(**location.model_dump())
     session.add(db_location)
@@ -39,6 +39,6 @@ def create(
 )
 def list_all(
     session: Session = Depends(get_db),
-    # current_user: str = Depends(get_current_user),
+    current_user: str = Depends(get_current_user),
 ):
     return session.query(Location).all()

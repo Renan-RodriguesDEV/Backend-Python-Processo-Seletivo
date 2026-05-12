@@ -1,0 +1,29 @@
+services:
+  backend:
+    build: .
+    ports:
+      - 8000:8000
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:password@database:5432/reservation_db
+      JWT_SECRET: ${JWT_SECRET:-super-secret-key-change-this-1234567890}
+    networks:
+      - backend-python
+    depends_on:
+      - database
+    
+  database:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: reservation_db
+    ports:
+      - 5432:5432
+    networks:
+      - backend-python
+
+networks:
+  backend-python:
+    driver: bridge

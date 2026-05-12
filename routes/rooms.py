@@ -24,7 +24,7 @@ router = APIRouter(prefix="/rooms", tags=["rooms"])
 def create(
     room: RoomRequest,
     session: Session = Depends(get_db),
-    # current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
     room_db = Room(**room.model_dump())
     session.add(room_db)
@@ -36,7 +36,7 @@ def create(
 @router.get("/", response_model=list[RoomResponse], description="Lista todas as salas.")
 def list_all(
     session: Session = Depends(get_db),
-    # current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
     return session.query(Room).all()
 
@@ -50,7 +50,7 @@ def update(
     id: int,
     room: RoomRequestUpdate,
     session: Session = Depends(get_db),
-    # current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
     room_db = session.query(Room).filter(Room.id == id).first()
     if not room_db:

@@ -28,3 +28,6 @@ def get_formatter():
         "%(asctime)s | [%(filename)s:%(lineno)d] | %(levelname)s | %(message)s",
         "%Y-%m-%d %H:%M",
     )
+
+
+logger = create_logger("app_logger", None)

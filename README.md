@@ -124,6 +124,8 @@ DATABASE_URL=sqlite:///./test.db
 # JWT - Deve ser compartilhado com o Backend C#
 JWT_SECRET=sua_chave_secreta_aqui
 JWT_ALGORITHM=HS256
+JWT_ISSUER=auth-service
+JWT_AUDIENCE=reservation-service
 
 # Modo Debug (False em produção)
 DEBUG=False
@@ -158,6 +160,7 @@ Authorization: Bearer <token_jwt>
 | `GET` | `/reservations/{id}` | Obter detalhes de uma reserva |
 | `PUT` | `/reservations/{id}` | Atualizar uma reserva |
 | `DELETE` | `/reservations/{id}` | Deletar uma reserva |
+| `DELETE` | `/reservations/` | Deletar todas as reservas |
 
 ### Salas
 
@@ -259,7 +262,7 @@ Ver `pyproject.toml` para lista completa.
 
 1. **Frontend faz login no Backend C#**
    ```
-   POST /auth/login
+  POST /api/user/login
    ```
    Retorna JWT com payload contendo `sub` (user_id) e `email`
 

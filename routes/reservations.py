@@ -18,6 +18,7 @@ from models.schemas.reservations import (
     ReservationRequestUpdate,
     ReservationResponse,
 )
+from services.reservation import check_time_conflict
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 
@@ -31,8 +32,18 @@ router = APIRouter(prefix="/reservations", tags=["reservations"])
 def create(
     reservation: ReservationRequest,
     session: Session = Depends(get_db),
-    # current_user: str = Depends(get_current_user)
+    current_user: str = Depends(get_current_user),
 ):
+    if check_time_conflict(
+        room_id=reservation.room_id,
+        start=reservation.start_datetime,
+        end=reservation.end_datetime,
+        session=session,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Time conflict found for this reservation.",
+        )
     db_reservation = Reservation(**reservation.model_dump())
     session.add(db_reservation)
     session.commit()
@@ -50,12 +61,23 @@ def update(
     id: int,
     reservation: ReservationRequestUpdate,
     session: Session = Depends(get_db),
-    # current_user: str = Depends(get_current_user),
+    current_user: str = Depends(get_current_user),
 ):
     db_reservation = session.query(Reservation).filter(Reservation.id == id).first()
     if not db_reservation:
-        return HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found"
+        )
+    if check_time_conflict(
+        room_id=reservation.room_id,
+        start=reservation.start_datetime,
+        end=reservation.end_datetime,
+        session=session,
+        exclude_id=id,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Time conflict found for this reservation.",
         )
     for k, v in reservation.model_dump().items():
         if v:
@@ -72,8 +94,7 @@ def update(
     description="Lista todas as reservas.",
 )
 def list_all(
-    session: Session = Depends(get_db),
-    # current_user: str = Depends(get_current_user)
+    session: Session = Depends(get_db), current_user: str = Depends(get_current_user)
 ):
     return session.query(Reservation).all()
 
@@ -87,7 +108,7 @@ def list_all(
 def list_one(
     id: int,
     session: Session = Depends(get_db),
-    # current_user: str = Depends(get_current_user),
+    current_user: str = Depends(get_current_user),
 ):
     reservation = session.query(Reservation).filter(Reservation.id == id).first()
     if not reservation:
@@ -105,7 +126,7 @@ def list_one(
 def delete_one(
     id: int,
     session: Session = Depends(get_db),
-    # current_user: str = Depends(get_current_user),
+    current_user: str = Depends(get_current_user),
 ):
     reservation = session.query(Reservation).filter(Reservation.id == id).first()
     if not reservation:
@@ -123,8 +144,7 @@ def delete_one(
     description="Deleta todas as reservas.",
 )
 def delete_all(
-    session: Session = Depends(get_db),
-    # current_user: str = Depends(get_current_user)
+    session: Session = Depends(get_db), current_user: str = Depends(get_current_user)
 ):
     reservations = session.query(Reservation).all()
     if not reservations:

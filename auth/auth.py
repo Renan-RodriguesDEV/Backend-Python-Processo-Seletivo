@@ -5,9 +5,13 @@ import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from config.logger import logger
+
 # Configuração
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-SECRET_KEY = os.getenv("JWT_SECRET", "my_secret_compartilhado_com_csharp")
+SECRET_KEY = os.getenv("JWT_SECRET", "super-secret-key-change-this-1234567890")
+JWT_ISSUER = os.getenv("JWT_ISSUER", "auth-service")
+JWT_AUDIENCE = os.getenv("JWT_AUDIENCE", "reservation-service")
 
 # Esquema de segurança para extrair Bearer token do header
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -30,6 +34,7 @@ def get_current_user(
     """
 
     # 1. Verificar se token existe no header
+    logger.debug(f"Received credentials: {credentials}")
     if not credentials or not credentials.credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -38,9 +43,16 @@ def get_current_user(
         )
 
     try:
+        logger.debug(
+            f"Validating token: {credentials.credentials}"
+        )  # Log do token recebido
         # 2. Decodificar e validar o token
         payload = jwt.decode(
-            credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM]
+            credentials.credentials,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+            issuer=JWT_ISSUER,
+            audience=JWT_AUDIENCE,
         )
 
         # 3. Verificar se tem os campos obrigatórios
@@ -56,10 +68,12 @@ def get_current_user(
         return payload  # {"sub": "123", "email": "joao@example.com", ...}
 
     except jwt.ExpiredSignatureError:
+        logger.warning("Token expired")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expirado"
         )
     except jwt.InvalidTokenError as e:
+        logger.warning(f"Invalid token: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Token inválido: {str(e)}"
         )
