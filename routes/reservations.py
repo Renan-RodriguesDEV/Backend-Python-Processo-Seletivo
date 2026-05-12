@@ -1,0 +1,137 @@
+"""
+POST /reservations - criar nova reserva
+GET /reservations - listar todas
+GET /reservations/{id} - detalhe
+PUT /reservations/{id} - editar
+DELETE /reservations/{id} - deletar único
+DELETE /reservations/batch - deletar múltiplas (opcional)
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from auth.auth import get_current_user
+from config.db import get_db
+from models.entities.reservations import Reservation
+from models.schemas.reservations import (
+    ReservationRequest,
+    ReservationRequestUpdate,
+    ReservationResponse,
+)
+
+router = APIRouter(prefix="/reservations", tags=["reservations"])
+
+
+@router.post(
+    "/",
+    response_model=ReservationResponse,
+    status_code=status.HTTP_201_CREATED,
+    description="Cria uma nova reserva. Forneça os detalhes da reserva no corpo da requisição.",
+)
+def create(
+    reservation: ReservationRequest,
+    session: Session = Depends(get_db),
+    # current_user: str = Depends(get_current_user)
+):
+    db_reservation = Reservation(**reservation.model_dump())
+    session.add(db_reservation)
+    session.commit()
+    session.refresh(db_reservation)
+    return db_reservation
+
+
+@router.put(
+    "/{id}",
+    response_model=ReservationResponse,
+    status_code=status.HTTP_200_OK,
+    description="Atualiza os detalhes de uma reserva existente. Forneça apenas os campos que deseja atualizar.",
+)
+def update(
+    id: int,
+    reservation: ReservationRequestUpdate,
+    session: Session = Depends(get_db),
+    # current_user: str = Depends(get_current_user),
+):
+    db_reservation = session.query(Reservation).filter(Reservation.id == id).first()
+    if not db_reservation:
+        return HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found"
+        )
+    for k, v in reservation.model_dump().items():
+        if v:
+            setattr(db_reservation, k, v)
+    session.commit()
+    session.refresh(db_reservation)
+    return db_reservation
+
+
+@router.get(
+    "/",
+    response_model=list[ReservationResponse],
+    status_code=status.HTTP_200_OK,
+    description="Lista todas as reservas.",
+)
+def list_all(
+    session: Session = Depends(get_db),
+    # current_user: str = Depends(get_current_user)
+):
+    return session.query(Reservation).all()
+
+
+@router.get(
+    "/{id}",
+    response_model=ReservationResponse,
+    status_code=status.HTTP_200_OK,
+    description="Lista uma reserva especifica.",
+)
+def list_one(
+    id: int,
+    session: Session = Depends(get_db),
+    # current_user: str = Depends(get_current_user),
+):
+    reservation = session.query(Reservation).filter(Reservation.id == id).first()
+    if not reservation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found"
+        )
+    return reservation
+
+
+@router.delete(
+    "/{id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    description="Deleta uma reserva especifica.",
+)
+def delete_one(
+    id: int,
+    session: Session = Depends(get_db),
+    # current_user: str = Depends(get_current_user),
+):
+    reservation = session.query(Reservation).filter(Reservation.id == id).first()
+    if not reservation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found"
+        )
+    session.delete(reservation)
+    session.commit()
+    return
+
+
+@router.delete(
+    "/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    description="Deleta todas as reservas.",
+)
+def delete_all(
+    session: Session = Depends(get_db),
+    # current_user: str = Depends(get_current_user)
+):
+    reservations = session.query(Reservation).all()
+    if not reservations:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Reservations not found"
+        )
+    for reservation in reservations:
+        session.delete(reservation)
+    session.commit()
+    return
