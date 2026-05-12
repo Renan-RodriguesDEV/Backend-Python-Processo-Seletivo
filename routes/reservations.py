@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from auth.auth import get_current_user
 from config.db import get_db
+from config.logger import logger
 from models.entities.reservations import Reservation
 from models.schemas.reservations import (
     ReservationRequest,
@@ -44,6 +45,7 @@ def create(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Time conflict found for this reservation.",
         )
+    logger.debug(f"Creating reservation with data: {reservation}")
     db_reservation = Reservation(**reservation.model_dump())
     session.add(db_reservation)
     session.commit()
@@ -63,6 +65,7 @@ def update(
     session: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
 ):
+    logger.debug(f"Updating reservation with data: {reservation}")
     db_reservation = session.query(Reservation).filter(Reservation.id == id).first()
     if not db_reservation:
         raise HTTPException(
@@ -79,6 +82,7 @@ def update(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Time conflict found for this reservation.",
         )
+
     for k, v in reservation.model_dump().items():
         if v:
             setattr(db_reservation, k, v)
@@ -115,6 +119,7 @@ def list_one(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found"
         )
+    logger.debug(f"Fetching reservation with data: {reservation}")
     return reservation
 
 
@@ -135,6 +140,7 @@ def delete_one(
         )
     session.delete(reservation)
     session.commit()
+    logger.debug(f"Deleting reservation with data: {reservation}")
     return
 
 
@@ -154,4 +160,5 @@ def delete_all(
     for reservation in reservations:
         session.delete(reservation)
     session.commit()
+    logger.debug(f"Deleting all reservations with data: {reservations}")
     return

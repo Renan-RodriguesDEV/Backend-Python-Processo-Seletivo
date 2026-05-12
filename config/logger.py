@@ -13,6 +13,7 @@ def create_logger(name: str, file: Path = None):
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.DEBUG)
     console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
     if file:
         if not file.parent.exists():
             file.parent.mkdir(parents=True, exist_ok=True)
