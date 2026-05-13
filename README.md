@@ -18,6 +18,8 @@ Este é o microsserviço responsável pelo gerenciamento de **reservas de salas*
 3. Este serviço valida o token localmente usando a chave compartilhada (`JWT_SECRET`)
 4. Se válido, processa a requisição; caso contrário, retorna erro 401
 
+Para uma visão visual da arquitetura e do domínio, consulte [DIAGRAMAS.md](DIAGRAMAS.md).
+
 ---
 
 ## 🛠️ Tecnologias e Justificativas
@@ -28,10 +30,10 @@ Este é o microsserviço responsável pelo gerenciamento de **reservas de salas*
 
 ### ORM: SQLAlchemy 2.0
 - **Por quê?** ORM mais maduro e robusto do Python, com suporte a múltiplos bancos relacionais
-- **Vantagens**: Migrations automáticas, relacionamentos bem definidos, query builder type-safe
+- **Vantagens**: Relacionamentos bem definidos, query builder type-safe, suporte a migrations via Alembic
 
-### Banco de Dados: SQLite (desenvolvimento) / PostgreSQL (produção)
-- **Por quê?** SQLite para facilitar desenvolvimento local sem dependências externas; PostgreSQL para produção com escalabilidade
+### Banco de Dados: SQLite
+- **Por quê?** Facilita desenvolvimento local sem dependências externas e permite testes rápidos
 - **Configurável via**: Variável de ambiente `DATABASE_URL`
 
 ### Autenticação: PyJWT
@@ -141,7 +143,6 @@ Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
 ```env
 # Banco de Dados
 DATABASE_URL=sqlite:///./test.db
-# Para PostgreSQL: DATABASE_URL=postgresql://user:password@localhost/dbname
 
 # JWT - Deve ser compartilhado com o Backend C#
 JWT_SECRET=sua_chave_secreta_aqui
@@ -158,10 +159,8 @@ CORS_ORIGINS=http://localhost:3000,http://localhost:8080
 
 ### Variáveis Críticas
 
-- **`JWT_SECRET`**: Chave para validar tokens JWT. **DEVE SER A MESMA DO BACKEND C#**
-- **`DATABASE_URL`**: URL de conexão com banco de dados
-  - Desenvolvimento: `sqlite:///./test.db` (arquivo local)
-  - Produção: `postgresql://user:pass@host/db`
+- **`JWT_SECRET`**: Chave compartilhada para validar tokens JWT. **DEVE SER A MESMA DO BACKEND C#**
+- **`DATABASE_URL`**: URL de conexão com banco de dados (padrão: `sqlite:///./test.db`)
 
 ---
 
@@ -182,7 +181,9 @@ Authorization: Bearer <token_jwt>
 | `GET` | `/reservations/{id}` | Obter detalhes de uma reserva |
 | `PUT` | `/reservations/{id}` | Atualizar uma reserva |
 | `DELETE` | `/reservations/{id}` | Deletar uma reserva |
-| `DELETE` | `/reservations/` | Deletar todas as reservas |
+| `DELETE` | `/reservations/batch/` | Deletar reservas em lote por IDs |
+
+> Observação: o endpoint de batch recebe um objeto JSON no corpo da requisição no formato `{ "ids": [1, 2, 3] }` e remove apenas as reservas encontradas. Se nenhum ID corresponder a uma reserva existente, a API retorna `404 Not Found`.
 
 ### Salas
 
@@ -214,6 +215,14 @@ curl -X POST http://localhost:8000/reservations/ \
     "coffee": true,
     "people_count": 5,
     "description": "Reunião com stakeholders"
+  }'
+
+# Deletar reservas em lote
+curl -X DELETE http://localhost:8000/reservations/batch/ \
+  -H "Authorization: Bearer seu_token_jwt" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ids": [1, 2, 3]
   }'
 ```
 
@@ -305,9 +314,6 @@ Ver `pyproject.toml` para lista completa.
 
 ## 🗄️ Migrations do Banco de Dados
 
-### Primeira execução
-O SQLAlchemy cria as tabelas automaticamente na primeira execução baseado nos modelos.
-
 ### Criar tabelas manualmente
 ```python
 from models.entities.base import Base
@@ -361,6 +367,14 @@ curl -X POST http://localhost:8000/reservations/ \
     "end_datetime": "2026-05-20T11:00:00",
     "responsible": "João Silva"
   }'
+
+# Deletar reservas em lote
+curl -X DELETE http://localhost:8000/reservations/batch/ \
+  -H "Authorization: Bearer seu_token_jwt" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ids": [1, 2, 3]
+  }'
 ```
 
 ---
@@ -391,19 +405,4 @@ A API retorna erros padrão HTTP com descrição:
 - ✅ Type hints para evitar erros
 - ✅ Validação automática de entrada via Pydantic
 - ✅ CORS configurável por ambiente
-- ✅ Senha compartilhada (`JWT_SECRET`) entre serviços
-
----
-
-## 📚 Referências
-
-- [FastAPI Documentation](https://fastapi.tiangolo.com)
-- [SQLAlchemy Documentation](https://docs.sqlalchemy.org)
-- [PyJWT Documentation](https://pyjwt.readthedocs.io)
-- [Pydantic Documentation](https://docs.pydantic.dev)
-
----
-
-## 📧 Suporte
-
-Para dúvidas sobre o microsserviço, consulte a documentação interativa em `/docs` da aplicação.
+- ✅ Chave compartilhada (`JWT_SECRET`) entre serviços

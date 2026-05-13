@@ -15,6 +15,7 @@ from config.db import get_db
 from config.logger import logger
 from models.entities.reservations import Reservation
 from models.schemas.reservations import (
+    EntityIds,
     ReservationRequest,
     ReservationRequestUpdate,
     ReservationResponse,
@@ -160,14 +161,19 @@ def delete_one(
 
 
 @router.delete(
-    "/",
+    "/batch/",
     status_code=status.HTTP_204_NO_CONTENT,
-    description="Deleta todas as reservas.",
+    description="Deleta múltiplas reservas por IDs.",
 )
 def delete_all(
-    session: Session = Depends(get_db), current_user: str = Depends(get_current_user)
+    entity_ids: EntityIds,
+    session: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
 ):
-    reservations = session.query(Reservation).all()
+    reservations = (
+        session.query(Reservation).where(Reservation.id.in_(entity_ids.ids)).all()
+    )
+    logger.debug(f"Len of IDs: {len(reservations)}")
     if not reservations:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Reservations not found"

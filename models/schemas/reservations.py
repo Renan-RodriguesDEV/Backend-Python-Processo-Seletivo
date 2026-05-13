@@ -30,3 +30,7 @@ class ReservationResponse(ReservationRequest):
     id: int
     created_at: datetime.datetime
     room: RoomResponse
+
+
+class EntityIds(BaseModel):
+    ids: list[int]
