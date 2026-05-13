@@ -1,5 +1,6 @@
 import datetime
 
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from models.entities.reservations import Reservation
@@ -14,14 +15,17 @@ def check_time_conflict(
 ) -> bool:
     """Verifica se há reserva sobreposta na mesma sala.
 
-    Detecta conflito quando: existing.start <= new.end AND existing.end >= new.start
+    Detecta conflito quando existe uma reserva com intervalo que se sobrepõe ao novo.
+    A condição correta é:
+        existing.start < new.end AND existing.end > new.start
     """
+
     query = session.query(Reservation).filter(
         Reservation.room_id == room_id,
-        Reservation.start_datetime
-        <= end,  # Reserva existente começa antes ou no mesmo momento do término
-        Reservation.end_datetime
-        >= start,  # Reserva existente termina depois ou no mesmo momento do início
+        and_(
+            Reservation.start_datetime < end,
+            Reservation.end_datetime > start,
+        ),
     )
     if exclude_id:
         query = query.filter(Reservation.id != exclude_id)

@@ -61,7 +61,7 @@ Este é o microsserviço responsável pelo gerenciamento de **reservas de salas*
 
 ```bash
 # Clonar o repositório
-git clone <URL_DO_REPOSITORIO>
+git clone https://github.com/Renan-RodriguesDEV/Backend-Python-Processo-Seletivo.git
 cd backend-python
 
 # Instalar dependências
@@ -77,7 +77,7 @@ source .venv/bin/activate  # Linux/Mac
 
 ```bash
 # Clonar o repositório
-git clone <URL_DO_REPOSITORIO>
+git clone https://github.com/Renan-RodriguesDEV/Backend-Python-Processo-Seletivo.git
 cd backend-python
 
 # Criar ambiente virtual
@@ -109,6 +109,28 @@ O servidor estará disponível em `http://localhost:8000`
 
 - **Documentação Interativa**: http://localhost:8000/docs
 - **Documentação OpenAPI**: http://localhost:8000/redoc
+
+---
+
+## 🧪 Rodando os Testes
+
+### Com `pytest`
+```bash
+# Ativar o venv
+.venv\Scripts\activate  # Windows
+# ou
+source .venv/bin/activate  # Linux/Mac
+
+# Executar todos os testes
+pytest
+```
+
+### Executar apenas os testes de reservas
+```bash
+pytest -m reservations_conflicts
+```
+
+> Observação: se `pytest` não estiver instalado, instale pelo `uv sync` ou `pip install -r requirements.txt`.
 
 ---
 

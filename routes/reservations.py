@@ -35,6 +35,12 @@ def create(
     session: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
 ):
+    if reservation.end_datetime <= reservation.start_datetime:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="end_datetime must be after start_datetime.",
+        )
+
     if check_time_conflict(
         room_id=reservation.room_id,
         start=reservation.start_datetime,
@@ -71,10 +77,19 @@ def update(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found"
         )
+    new_start = reservation.start_datetime or db_reservation.start_datetime
+    new_end = reservation.end_datetime or db_reservation.end_datetime
+
+    if new_end <= new_start:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="end_datetime must be after start_datetime.",
+        )
+
     if check_time_conflict(
-        room_id=reservation.room_id,
-        start=reservation.start_datetime,
-        end=reservation.end_datetime,
+        room_id=reservation.room_id or db_reservation.room_id,
+        start=new_start,
+        end=new_end,
         session=session,
         exclude_id=id,
     ):
@@ -84,7 +99,7 @@ def update(
         )
 
     for k, v in reservation.model_dump().items():
-        if v:
+        if v is not None:
             setattr(db_reservation, k, v)
     session.commit()
     session.refresh(db_reservation)
